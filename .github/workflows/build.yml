@@ -11,13 +11,14 @@ permissions:
 jobs:
   Docker-build-with-evidence:
     runs-on: ubuntu-latest
+    env:
+      REPO_NAME: evidence-demo-docker-dev
     steps:
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          REPO_NAME: evidence-demo-docker-dev
 
       - uses: actions/checkout@v4
 
@@ -40,7 +41,7 @@ jobs:
       - name: Build Docker image
         run: |
           URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
-          REPO_URL=${URL}'/'${{ REPO_NAME }}
+          REPO_URL=${URL}/${REPO_NAME}
           docker build --build-arg REPO_URL=${REPO_URL} -f Dockerfile . \
           --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
