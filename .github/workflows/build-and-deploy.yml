@@ -40,7 +40,7 @@ jobs:
       - name: Build Docker image
         run: |
           URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
-          REPO_URL=${URL}'/${REPO_NAME}'
+          REPO_URL=${URL}/${REPO_NAME}
           docker build --build-arg REPO_URL=${REPO_URL} -f Dockerfile . \
           --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
@@ -50,15 +50,15 @@ jobs:
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --package-name example-project-app --package-version 65 --package-repo-name ${REPO_NAME} \
-            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias "KEY-ALIAS" \
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
 
       - name: Upload readme file
         run: |
           jf rt upload ./README.md example-project-generic-dev/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
-          jf evd create --subject-repo-path example-project-generic-dev/readme/${{ github.run_number }}/README.md \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias "KEY-ALIAS"  \
+          jf evd create --subject-repo-path evidence-demo-generic-local/readme/${{ github.run_number }}/README.md \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS  \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
       - name: Collecting Information from Git
@@ -75,15 +75,15 @@ jobs:
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/build-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias "KEY-ALIAS"
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS
           echo '🔎 Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
 
       - name: Create release bundle
         run: |
           echo '{ "files": [ {"build": "'"${{ vars.BUILD_NAME }}/${{ github.run_number }}"'" } ] }' > bundle-spec.json
           jf release-bundle-create ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} --signing-key PGP-RSA-2048 --spec bundle-spec.json --sync=true
-          NAME_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&repositoryKey=example-project-release-bundles-v2&activeKanbanTab=promotion'
-          VER_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=example-project-release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
+          NAME_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&repositoryKey=release-bundles-v2&activeKanbanTab=promotion'
+          VER_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
           echo '📦 Release bundle ['${{ vars.BUNDLE_NAME }}']('${NAME_LINK}'):['${{ github.run_number }}']('${VER_LINK}') created' >> $GITHUB_STEP_SUMMARY
 
 
@@ -101,7 +101,7 @@ jobs:
       - name: Promote to QA
         run: |
           jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} QA --signing-key PGP-RSA-2048 --sync=true
-          echo "🚀 Succesfully promote to `QA` environemnt" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 Succesfully promote to \`QA\` environemnt" >> $GITHUB_STEP_SUMMARY
 
       - name: Evidence on release-bundle
         run: |
@@ -109,6 +109,56 @@ jobs:
           JF_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
           echo 'Test on Release bundle ['${{ vars.BUNDLE_NAME }}':'${{ github.run_number }}']('${JF_LINK}') success' >> $GITHUB_STEP_SUMMARY
           jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
-            --predicate ./rbv2_evidence.json --predicate-type https://jfrog.com/evidence/rbv2-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias "KEY-ALIAS"
+            --predicate ./rbv2_evidence.json --predicate-type https://jfrog.com/evidence/testing-results/v1 \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
+
+
+  Policy-check-and-promote-to-prod:
+    needs: Promote-to-qa-and-test    
+    runs-on: ubuntu-latest
+    steps:
+    
+      - name: Install jfrog cli
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.ARTIFACTORY_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+    
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OPA
+        run: |
+          curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x opa
+          sudo mv opa /usr/local/bin/
+
+      - name: Call GraphQL
+        run: |
+          ./scripts/graphql.sh ${{ vars.ARTIFACTORY_URL }} ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} release-bundles-v2 ${{ vars.BUNDLE_NAME }} ${{ github.run_number }}
+          cat evidence_graph.json
+
+      - name: Run policy
+        id: run_policy
+        run: |
+          result=$(opa eval --input ./evidence_graph.json --data policy/policy.rego "data.greenpizza.output" | jq '.result[0].expressions[0].value.approved')
+          echo "RESULT=$result" >> $GITHUB_ENV
+          echo "RESULT=$result" >> $GITHUB_STEP_SUMMARY
+
+      - name: Promote to Production
+        run: |
+          if [ "${{ env.RESULT }}" == "true" ]; then
+            opa eval --input ./evidence_graph.json --data policy/policy.rego "data.greenpizza.output" | jq '.result[0].expressions[0].value' > policy.json
+            cat policy.json
+            jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS \
+              --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
+              --predicate ./policy.json --predicate-type https://jfrog.com/evidence/approval/v1
+            jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} PROD --signing-key PGP-RSA-2048  --sync=true
+            echo "🚀 Succesfully promote to \`PROD\` environemnt" >> $GITHUB_STEP_SUMMARY
+          else
+            opa eval --input ./evidence_graph.json --data policy/policy.rego "data.greenpizza.output" | jq '.result[0].expressions[0].value'
+            echo "Fail promotion policy check" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
