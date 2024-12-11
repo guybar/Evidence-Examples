@@ -50,7 +50,7 @@ jobs:
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
-            --key "${{ vars.PRIVATE_KEY }}"  --key-alias KEY-ALIAS \
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
 
@@ -58,7 +58,7 @@ jobs:
         run: |
           jf rt upload ./README.md example-project-generic-dev/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           jf evd create --subject-repo-path evidence-demo-generic-local/readme/${{ github.run_number }}/README.md \
-            --key "${{ vars.PRIVATE_KEY }}" --key-alias KEY-ALIAS  \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS  \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
       - name: Collecting Information from Git
