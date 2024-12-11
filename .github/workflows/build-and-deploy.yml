@@ -49,7 +49,7 @@ jobs:
       - name: Evidence on docker
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
-          jf evd create --package-name example-project-app --package-version 65 --package-repo-name ${REPO_NAME} \
+          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
             --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
