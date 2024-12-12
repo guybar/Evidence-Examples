@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPO_NAME: evidence-demo-docker-dev
+      JFROG_CLI_LOG_LEVEL: DEBUG
     steps:
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
