@@ -51,7 +51,7 @@ jobs:
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --package-name example-project-app --package-version 65 --package-repo-name ${REPO_NAME}-local \
-            --key "${{ secrets.PRIVATE_KEY }}" \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
 
@@ -59,7 +59,7 @@ jobs:
         run: |
           jf rt upload ./README.md example-project-generic-dev/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           jf evd create --subject-repo-path example-project-generic-dev/readme/${{ github.run_number }}/README.md \
-            --key "${{ secrets.PRIVATE_KEY }}" \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
       - name: Publish build info
@@ -70,13 +70,13 @@ jobs:
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/build-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}"
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}
           echo '🔎 Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
 
       - name: Create release bundle
         run: |
           echo '{ "files": [ {"build": "'"${{ vars.BUILD_NAME }}/${{ github.run_number }}"'" } ] }' > bundle-spec.json
-          jf release-bundle-create ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} --signing-key PGP-RSA-2048 --spec bundle-spec.json --sync=true
+          jf release-bundle-create ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} --signing-key ${{ secrets.RB_KEY }} --spec bundle-spec.json --sync=true
           NAME_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&repositoryKey=example-project-release-bundles-v2&activeKanbanTab=promotion'
           VER_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=example-project-release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
           echo '📦 Release bundle ['${{ vars.BUNDLE_NAME }}']('${NAME_LINK}'):['${{ github.run_number }}']('${VER_LINK}') created' >> $GITHUB_STEP_SUMMARY
@@ -88,5 +88,5 @@ jobs:
           echo 'Test on Release bundle ['${{ vars.BUNDLE_NAME }}':'${{ github.run_number }}']('${JF_LINK}') success' >> $GITHUB_STEP_SUMMARY
           jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
             --predicate ./rbv2_evidence.json --predicate-type https://jfrog.com/evidence/rbv2-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}"
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
