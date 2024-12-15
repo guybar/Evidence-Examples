@@ -56,8 +56,8 @@ jobs:
           echo '🔎 Evidence attached: `signature` 🔏 ' 
       - name: Upload readme file
         run: |
-          jf rt upload ./README.md evidence-demo-generic-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
-          jf evd create --subject-repo-path evidence-demo-generic-local/readme/${{ github.run_number }}/README.md \
+          jf rt upload ./README.md evidence-demo-generic-dev-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
+          jf evd create --subject-repo-path evidence-demo-generic-dev-local/readme/${{ github.run_number }}/README.md \
             --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}  \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
