@@ -154,7 +154,7 @@ jobs:
             jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
               --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
               --predicate ./policy.json --predicate-type https://jfrog.com/evidence/approval/v1
-            jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} PROD --signing-key PGP-RSA-2048  --sync=true
+            jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} PROD --signing-key ${{ secrets.RB_KEY }} --sync=true
             echo "🚀 Succesfully promote to \`PROD\` environemnt" >> $GITHUB_STEP_SUMMARY
           else
             opa eval --input ./evidence_graph.json --data policy/policy.rego "data.greenpizza.output" | jq '.result[0].expressions[0].value'
