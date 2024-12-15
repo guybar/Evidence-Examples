@@ -50,13 +50,15 @@ jobs:
       - name: Evidence on docker
         run: |
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
-          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${KEY_ALIAS} --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
+          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
+          --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
+          --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
       - name: Upload readme file
         run: |
           jf rt upload ./README.md evidence-demo-generic-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           jf evd create --subject-repo-path evidence-demo-generic-local/readme/${{ github.run_number }}/README.md \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${KEY_ALIAS}  \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}  \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
       - name: Collecting Information from Git
@@ -73,7 +75,7 @@ jobs:
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/build-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias ${KEY_ALIAS}
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias ${{ secrets.KEY_ALIAS }}
           echo '🔎 Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
 
       - name: Create release bundle
@@ -108,7 +110,7 @@ jobs:
           echo 'Test on Release bundle ['${{ vars.BUNDLE_NAME }}':'${{ github.run_number }}']('${JF_LINK}') success' >> $GITHUB_STEP_SUMMARY
           jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
             --predicate ./rbv2_evidence.json --predicate-type https://jfrog.com/evidence/testing-results/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY_ALIAS
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
 
 
@@ -149,7 +151,7 @@ jobs:
           if [ "${{ env.RESULT }}" == "true" ]; then
             opa eval --input ./evidence_graph.json --data policy/policy.rego "data.greenpizza.output" | jq '.result[0].expressions[0].value' > policy.json
             cat policy.json
-            jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY_ALIAS \
+            jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
               --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
               --predicate ./policy.json --predicate-type https://jfrog.com/evidence/approval/v1
             jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} PROD --signing-key PGP-RSA-2048  --sync=true
