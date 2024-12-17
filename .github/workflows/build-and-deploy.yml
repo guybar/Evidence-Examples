@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPO_NAME: evidence-demo-docker-dev
-      URL: $(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
-      REPO_URL: ${URL}/${REPO_NAME}
-      IMAGE_NAME: ${REPO_URL}/example-project-app:${{ github.run_number }}
       # JFROG_CLI_LOG_LEVEL: DEBUG
     steps:
       - name: Install jfrog cli
@@ -46,8 +43,10 @@ jobs:
 
       - name: Build Docker image
         run: |
+          URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
+          REPO_URL=${URL}/${REPO_NAME}
           docker build --build-arg REPO_URL=${REPO_URL} -f Dockerfile . \
-          --tag $IMAGE_NAME \
+          --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
 
@@ -58,7 +57,7 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: |
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY $IMAGE_NAME
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${REPO_URL}/example-project-app:${{ github.run_number }}
 
       - name: Evidence on docker
         run: |
