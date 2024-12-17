@@ -38,6 +38,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           install: true
 
+      - name: Setup Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
       - name: Build Docker image
         run: |
           URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
@@ -46,6 +49,10 @@ jobs:
           --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
+
+      - name: Sign docker image
+        run: |
+          cosign sign --yes --key ${{ secrets.COSIGN_KEY }} ${REPO_URL}/example-project-app:${{ github.run_number }}
 
       - name: Evidence on docker
         run: |
