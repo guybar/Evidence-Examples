@@ -39,7 +39,7 @@ jobs:
           install: true
 
       - name: Setup Cosign
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@main
 
       - name: Build Docker image
         run: |
@@ -57,6 +57,8 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: |
+          URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
+          REPO_URL=${URL}/${REPO_NAME}
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${REPO_URL}/example-project-app:${{ github.run_number }}
 
       - name: Evidence on docker
