@@ -79,6 +79,14 @@ jobs:
           subject-name: ${{ steps.docker-build.outputs.image_name }}
           subject-digest: ${{ steps.docker-build.outputs.digest }}
           push-to-registry: true
+      - name: Upload Provenance attestation as a Jfrog evidence
+        id: upload-gh-provenance
+        run: |
+          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
+          --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
+          --predicate ${{ steps.attest.outputs.bundle-path}} --predicate-type https://slsa.dev/provenance/v1 
+          echo '🔎 Evidence attached: `provenance` ✅ ' 
+          
       - name: Upload readme file
         run: |
           jf rt upload ./README.md evidence-demo-generic-dev-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
