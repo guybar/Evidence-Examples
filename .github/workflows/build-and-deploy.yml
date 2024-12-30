@@ -50,10 +50,10 @@ jobs:
           --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
-          echo "debug section"
           DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq '.manifests[0].digest')
-          echo $DIGEST
           echo "digest=$DIGEST\n" >> $GITHUB_OUTPUT
+          echo "image_name=${REPO_URL}/example-project-app\n" >> $GITHUB_OUTPUT
+
       - name: Sign docker image
         env:
           TAGS: ${{ steps.docker_meta.outputs.tags }}
@@ -73,8 +73,11 @@ jobs:
           --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
       - name: Build Attestation Generation
-        run: |
-          echo "digest found: ${{ steps.docker-build.outputs.digest }}" 
+        uses: actions/attest-build-provenance@v2
+        id: attest
+        with:
+          subject-name: ${{ steps.docker-build.outputs.image_name }}
+          subject-digest: ${{ steps.docker-build.outputs.digest }}
       - name: Upload readme file
         run: |
           jf rt upload ./README.md evidence-demo-generic-dev-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
