@@ -51,8 +51,9 @@ jobs:
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           echo "debug section"
-          docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }}
-          echo "digest=foobar\n" >> $GITHUB_OUTPUT
+          DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq '.manifests[0].digest')
+          echo $DIGEST
+          echo "digest=$DIGEST\n" >> $GITHUB_OUTPUT
       - name: Sign docker image
         env:
           TAGS: ${{ steps.docker_meta.outputs.tags }}
