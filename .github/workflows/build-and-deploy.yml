@@ -78,6 +78,7 @@ jobs:
         with:
           subject-name: ${{ steps.docker-build.outputs.image_name }}
           subject-digest: ${{ steps.docker-build.outputs.digest }}
+          push-to-registry: true
       - name: Upload readme file
         run: |
           jf rt upload ./README.md evidence-demo-generic-dev-local/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
