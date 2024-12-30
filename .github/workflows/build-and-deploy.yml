@@ -51,7 +51,7 @@ jobs:
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           docker images --no-trunc --quiet ${REPO_URL}/example-project-app:${{ github.run_number }}
-          echo "digest=$(docker images --no-trunc --quiet ${REPO_URL}/example-project-app:${{ github.run_number }})\n" >> $GITHUB_OUTPUT
+          echo "digest=foobar\n" >> $GITHUB_OUTPUT
       - name: Sign docker image
         env:
           TAGS: ${{ steps.docker_meta.outputs.tags }}
