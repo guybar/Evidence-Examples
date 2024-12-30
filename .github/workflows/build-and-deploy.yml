@@ -50,7 +50,7 @@ jobs:
           --tag ${REPO_URL}/example-project-app:${{ github.run_number }} \
           --output=type=image --platform linux/amd64 --metadata-file=build-metadata --push
           jfrog rt build-docker-create ${REPO_NAME} --image-file build-metadata --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
-          DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq '.manifests[0].digest')
+          DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq -r '.manifests[0].digest')
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "image_name=${REPO_URL}/example-project-app" >> $GITHUB_OUTPUT
 
