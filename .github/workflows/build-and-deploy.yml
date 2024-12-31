@@ -8,7 +8,7 @@ permissions:
   contents: read
   attestations: write
 jobs:
-  Docker-build-with-evidence:
+  docker-build-with-evidence:
     runs-on: ubuntu-latest
     outputs:
       image_name: ${{ steps.docker-build.outputs.full_image_name }}
@@ -168,8 +168,9 @@ jobs:
       - name: Validate the attestation and the artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMG_NAME: ${{ needs.docker-build-with-evidence.outputs.image_name }}
         run: |
-          echo ${{needs.Docker-build-with-evidence.outputs.image_name}}
+          echo $IMG_NAME
           gh --version
   Policy-check-and-promote-to-prod:
     needs: Promote-to-qa-and-test    
