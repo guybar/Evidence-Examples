@@ -83,7 +83,7 @@ jobs:
         id: upload-gh-provenance
         run: |
           
-          jf evd create --package-name example-project-app --package-version "${{ github.run_number }}@${{ steps.docker-build.outputs.digest }}" --package-repo-name ${REPO_NAME} \
+          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
           --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
           --predicate ${{ steps.attest.outputs.bundle-path}} --predicate-type https://slsa.dev/provenance/v1 
           echo '🔎 Evidence attached: `provenance` ✅ ' 
