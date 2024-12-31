@@ -55,7 +55,7 @@ jobs:
           DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq -r '.manifests[0].digest')
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "image_name=${REPO_URL}/example-project-app" >> $GITHUB_OUTPUT
-          echo "full_image_name=${REPO_NAME}/example-project-app:${{ github.run_number }}-$DIGEST" >> $GITHUB_OUTPUT
+          echo "full_image_name=example-project-app:${{ github.run_number }}@$DIGEST" >> $GITHUB_OUTPUT
 
       - name: Sign docker image
         env:
