@@ -10,6 +10,8 @@ permissions:
 jobs:
   Docker-build-with-evidence:
     runs-on: ubuntu-latest
+    outputs:
+      image_name: ${{ steps.docker-build.outputs.full_image_name }}
     env:
       REPO_NAME: evidence-demo-docker-dev
       # JFROG_CLI_LOG_LEVEL: DEBUG
@@ -53,6 +55,7 @@ jobs:
           DIGEST=$(docker buildx imagetools inspect --raw ${REPO_URL}/example-project-app:${{ github.run_number }} | jq -r '.manifests[0].digest')
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "image_name=${REPO_URL}/example-project-app" >> $GITHUB_OUTPUT
+          echo "full_image_name=${REPO_URL}/example-project-app:{{ github.run_number }}@$DIGEST" >> $GITHUB_OUTPUT
 
       - name: Sign docker image
         env:
@@ -147,7 +150,27 @@ jobs:
             --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }}
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
 
-
+  Attestation-check-to-promote:
+    needs: Docker-build-with-evidence    
+    runs-on: ubuntu-latest
+    steps:  
+      - name: Install jfrog cli
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.ARTIFACTORY_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      - name: Log in to Artifactory Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.ARTIFACTORY_URL }}
+          username: ${{ secrets.JF_USER }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      - name: Validate the attestation and the artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo ${{needs.Docker-build-with-evidence.outputs.image_name}}
+          gh --version
   Policy-check-and-promote-to-prod:
     needs: Promote-to-qa-and-test    
     runs-on: ubuntu-latest
