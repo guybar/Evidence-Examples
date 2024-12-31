@@ -85,7 +85,6 @@ jobs:
       - name: Upload Provenance attestation as a Jfrog evidence
         id: upload-gh-provenance
         run: |
-          
           jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name ${REPO_NAME} \
           --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
           --predicate ${{ steps.attest.outputs.bundle-path}} --predicate-type https://slsa.dev/provenance/v1 
@@ -153,6 +152,8 @@ jobs:
   Attestation-check-to-promote:
     needs: Docker-build-with-evidence    
     runs-on: ubuntu-latest
+    env:
+      REPO_NAME: evidence-demo-docker-dev    
     steps:  
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
@@ -170,8 +171,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMG_NAME: ${{ needs.docker-build-with-evidence.outputs.image_name }}
         run: |
-          echo $IMG_NAME
-          gh --version
+          URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
+          REPO_URL=${URL}/${REPO_NAME}
+          gh attestation verify --owner guybar oci://$REPO_URL/$IMG_NAME --bundle-from-oci
   Policy-check-and-promote-to-prod:
     needs: Promote-to-qa-and-test    
     runs-on: ubuntu-latest
