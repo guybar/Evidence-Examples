@@ -82,7 +82,8 @@ jobs:
       - name: Upload Provenance attestation as a Jfrog evidence
         id: upload-gh-provenance
         run: |
-          jf evd create --package-name example-project-app --package-version ${{ steps.docker-build.outputs.digest }} --package-repo-name ${REPO_NAME} \
+          PKG_VERSION=$(${{ steps.docker-build.outputs.digest }} | sed 's/:/-/g')
+          jf evd create --package-name example-project-app --package-version $PKG_VERSION --package-repo-name ${REPO_NAME} \
           --key "${{ secrets.PRIVATE_KEY }}" --key-alias ${{ secrets.KEY_ALIAS }} \
           --predicate ${{ steps.attest.outputs.bundle-path}} --predicate-type https://slsa.dev/provenance/v1 
           echo '🔎 Evidence attached: `provenance` ✅ ' 
