@@ -150,7 +150,7 @@ jobs:
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
 
   Attestation-check-to-promote:
-    needs: Docker-build-with-evidence    
+    needs: docker-build-with-evidence    
     runs-on: ubuntu-latest
     env:
       REPO_NAME: evidence-demo-docker-dev    
@@ -166,14 +166,20 @@ jobs:
           registry: ${{ vars.ARTIFACTORY_URL }}
           username: ${{ secrets.JF_USER }}
           password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-      - name: Validate the attestation and the artifact
+      - name: prepare data for validation step
+        id: prepare-input
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
+          echo "repo-url=${URL}/${REPO_NAME}" >> $GITHUB_OUTPUT
+      - name: Validate the attestation and the artifact   
+        id: verify-attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMG_NAME: ${{ needs.docker-build-with-evidence.outputs.image_name }}
-        run: |
-          URL=$(echo ${{ vars.ARTIFACTORY_URL }} | sed 's|^https://||')
-          REPO_URL=${URL}/${REPO_NAME}
-          gh attestation verify --owner guybar oci://$REPO_URL/$IMG_NAME --bundle-from-oci
+        run: | 
+          gh attestation verify --owner guybar oci://${{ steps.prepare-input.outputs.repo-url }}/$IMG_NAME --bundle-from-oci --format json
   Policy-check-and-promote-to-prod:
     needs: Promote-to-qa-and-test    
     runs-on: ubuntu-latest
